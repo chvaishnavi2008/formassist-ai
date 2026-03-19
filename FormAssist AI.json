@@ -1,0 +1,250 @@
+{
+  "name": "FormAssist AI",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "formassist-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2a435080-9b51-448a-854d-3f86c0faa885",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "1b7dac07-5a0f-41db-97d3-8f833af27d87"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "reply",
+              "value": "={{ $json.explanation }}{{ $json.content.parts[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "steps",
+              "value": "={{ $json.steps }}",
+              "type": "array"
+            },
+            {
+              "id": "3",
+              "name": "fields",
+              "value": "={{ $json.fields }}",
+              "type": "array"
+            },
+            {
+              "id": "4",
+              "name": "link",
+              "value": "={{ $json.official_link }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2369ac33-82d1-436b-a40a-9d7c44930956",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "reply",
+              "value": "={{ $(\"Format Response\").item.json.reply }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "audio",
+              "value": "={{ $json.audioFile }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c0da0f55-dfcb-4ef9-8fbc-aff4a8c92466",
+      "name": "Combine Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1264,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"reply\": $json.reply, \"audio\": $json.audio } }}",
+        "options": {}
+      },
+      "id": "6769fe2c-f9f8-4b6d-a690-da5635cd1840",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1488,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=User query: {{ $json.body.query }}\n\nYou are a helpful government service assistant.\n\nReturn ONLY valid JSON in this format:\n{\n  \"service\": \"service name\",\n  \"official_link\": \"website url\",\n  \"steps\": [\"step1\", \"step2\", \"step3\"],\n  \"fields\": [\"field1\", \"field2\"],\n  \"explanation\": \"simple step-by-step explanation for beginners\"\n}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "2d198497-1f53-4e69-9bfe-cc105c2907b9",
+      "name": "Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        304
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Dgt5YpUgiTbPqKBS",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.reply }}",
+        "voiceId": {
+          "__rl": true,
+          "value": "en-US-daniel",
+          "mode": "list",
+          "cachedResultName": "Daniel (M)"
+        },
+        "multiNativeLocale": {
+          "__rl": true,
+          "value": "en-US",
+          "mode": "list",
+          "cachedResultName": "English (US & Canada)"
+        },
+        "style": {
+          "__rl": true,
+          "value": "Conversational",
+          "mode": "list",
+          "cachedResultName": "Conversational"
+        },
+        "additionalOptions": {}
+      },
+      "type": "n8n-nodes-murf.murf",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        304
+      ],
+      "id": "36bbc067-8982-474f-a5d4-b0ec95022aff",
+      "name": "Generate speech from text",
+      "credentials": {
+        "murfApi": {
+          "id": "lAOSJY2g1cukiSqj",
+          "name": "Murf account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Generate speech from text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate speech from text": {
+      "main": [
+        [
+          {
+            "node": "Combine Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9c5a3745-565c-41e8-8d29-8a03b7e49c27",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6724f9a6aeaf943aec843c784e81c966d86698be9f38c12c6cc1d47441fefb12"
+  },
+  "id": "23x4sVuSj8vKrR5o",
+  "tags": []
+}
