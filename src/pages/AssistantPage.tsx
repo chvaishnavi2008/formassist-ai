@@ -4,6 +4,7 @@ import PageTransition from "@/components/PageTransition";
 import AIOrb from "@/components/AIOrb";
 import AudioPlayer from "@/components/AudioPlayer";
 import { sendToWebhook } from "@/lib/webhook";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Message {
   id: string;
@@ -16,16 +17,22 @@ interface Message {
 }
 
 const AssistantPage = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: "Hello! I'm your FormAssist AI guide. How can I help you today?",
-    },
-  ]);
+  const { language, t } = useLanguage();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Update welcome message when language changes
+  useEffect(() => {
+    setMessages([
+      {
+        id: "welcome",
+        role: "assistant",
+        content: t("assistant.welcome"),
+      },
+    ]);
+  }, [language]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,7 +52,7 @@ const AssistantPage = () => {
     setInput("");
     setIsTyping(true);
 
-    const resp = await sendToWebhook(userInput);
+    const resp = await sendToWebhook(userInput, language);
 
     const aiMsg: Message = {
       id: (Date.now() + 1).toString(),
@@ -68,7 +75,7 @@ const AssistantPage = () => {
         </div>
 
         <h2 className="font-display text-xl text-center text-gradient-plasma mb-6">
-          AI Assistant
+          {t("assistant.title")}
         </h2>
 
         {/* Chat */}
@@ -128,7 +135,6 @@ const AssistantPage = () => {
                     </a>
                   )}
 
-                  {/* Audio Player */}
                   {msg.audioUrl && <AudioPlayer audioUrl={msg.audioUrl} />}
                 </div>
               </motion.div>
@@ -164,7 +170,7 @@ const AssistantPage = () => {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about any government service..."
+              placeholder={t("assistant.placeholder")}
               className="flex-1 bg-transparent px-4 py-3 text-foreground placeholder:text-muted-foreground outline-none"
             />
             <motion.button
@@ -173,7 +179,7 @@ const AssistantPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              Send
+              {t("assistant.send")}
             </motion.button>
           </div>
         </form>

@@ -5,6 +5,7 @@ import PageTransition from "@/components/PageTransition";
 import AIOrb from "@/components/AIOrb";
 import FloatingEntity from "@/components/FloatingEntity";
 import { sendToWebhook } from "@/lib/webhook";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const services = [
   { name: "Passport", icon: "🛂", x: 12, y: 20 },
@@ -24,6 +25,7 @@ const Index = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [response, setResponse] = useState("");
   const navigate = useNavigate();
+  const { language, t } = useLanguage();
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -31,11 +33,11 @@ const Index = () => {
       if (!query.trim()) return;
       setIsProcessing(true);
       setResponse("");
-      const result = await sendToWebhook(query);
+      const result = await sendToWebhook(query, language);
       setIsProcessing(false);
       setResponse(result.text || "Response received.");
     },
-    [query]
+    [query, language]
   );
 
   const matchingServices = query.trim()
@@ -47,7 +49,6 @@ const Index = () => {
   return (
     <PageTransition>
       <div className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
-        {/* Floating service entities */}
         {services.map((s, i) => (
           <FloatingEntity
             key={s.name}
@@ -58,12 +59,9 @@ const Index = () => {
           />
         ))}
 
-        {/* Center content */}
         <div className="relative z-10 flex flex-col items-center gap-8 max-w-2xl w-full">
-          {/* AI Orb */}
           <AIOrb size={180} isProcessing={isProcessing} />
 
-          {/* Headline */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -71,14 +69,13 @@ const Index = () => {
             className="text-center"
           >
             <h1 className="font-display text-4xl md:text-5xl text-gradient-plasma mb-3">
-              FormAssist AI
+              {t("home.title")}
             </h1>
             <p className="text-muted-foreground text-lg">
-              The complexity of government, distilled into a conversation.
+              {t("home.subtitle")}
             </p>
           </motion.div>
 
-          {/* Input */}
           <motion.form
             onSubmit={handleSubmit}
             initial={{ opacity: 0, y: 20 }}
@@ -90,7 +87,7 @@ const Index = () => {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="What government service do you need?"
+                placeholder={t("home.placeholder")}
                 className="flex-1 bg-transparent px-4 py-3.5 text-foreground placeholder:text-muted-foreground outline-none text-lg"
               />
               <motion.button
@@ -105,16 +102,15 @@ const Index = () => {
                     animate={{ opacity: [1, 0.5, 1] }}
                     transition={{ duration: 1, repeat: Infinity }}
                   >
-                    Processing...
+                    {t("home.processing")}
                   </motion.span>
                 ) : (
-                  "Ask AI"
+                  t("home.ask")
                 )}
               </motion.button>
             </div>
           </motion.form>
 
-          {/* Response */}
           <AnimatePresence>
             {response && (
               <motion.div
@@ -131,7 +127,7 @@ const Index = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => navigate("/assistant")}
                   >
-                    Continue with AI
+                    {t("home.continue")}
                   </motion.button>
                   <motion.button
                     className="magnetic-btn bg-muted text-muted-foreground px-4 py-2 rounded-xl text-sm"
@@ -139,14 +135,13 @@ const Index = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => navigate("/services")}
                   >
-                    Browse Services
+                    {t("home.browse")}
                   </motion.button>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Stats */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
