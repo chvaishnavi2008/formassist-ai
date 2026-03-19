@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/PageTransition";
 import AIOrb from "@/components/AIOrb";
-import Waveform from "@/components/Waveform";
+import AudioPlayer from "@/components/AudioPlayer";
+import { sendToWebhook } from "@/lib/webhook";
 
 interface Message {
   id: string;
@@ -11,25 +12,8 @@ interface Message {
   service?: string;
   steps?: string[];
   link?: string;
+  audioUrl?: string;
 }
-
-const mockResponses: Record<string, Omit<Message, "id" | "role">> = {
-  passport: {
-    content: "I'll help you with your passport application. Here's what you need:",
-    service: "Passport Application",
-    steps: [
-      "Complete Form DS-11 (first-time) or DS-82 (renewal)",
-      "Gather proof of citizenship (birth certificate or naturalization)",
-      "Provide a valid photo ID",
-      "Get a passport photo taken",
-      "Submit application at acceptance facility or by mail",
-    ],
-    link: "https://travel.state.gov/content/travel/en/passports.html",
-  },
-  default: {
-    content: "I can help you navigate government services. Tell me what you need assistance with — passports, licenses, tax filing, or any other service.",
-  },
-};
 
 const AssistantPage = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -41,14 +25,13 @@ const AssistantPage = () => {
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isTyping) return;
 
@@ -58,26 +41,28 @@ const AssistantPage = () => {
       content: input,
     };
     setMessages((prev) => [...prev, userMsg]);
+    const userInput = input;
     setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const key = input.toLowerCase().includes("passport") ? "passport" : "default";
-      const resp = mockResponses[key];
-      const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        ...resp,
-      };
-      setMessages((prev) => [...prev, aiMsg]);
-      setIsTyping(false);
-    }, 1500);
+    const resp = await sendToWebhook(userInput);
+
+    const aiMsg: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: resp.text || "Response received.",
+      audioUrl: resp.audioUrl,
+      service: resp.service,
+      steps: resp.steps,
+      link: resp.link,
+    };
+    setMessages((prev) => [...prev, aiMsg]);
+    setIsTyping(false);
   };
 
   return (
     <PageTransition>
       <div className="min-h-screen pt-20 pb-4 px-4 flex flex-col max-w-3xl mx-auto">
-        {/* Mini Orb */}
         <div className="flex justify-center mb-4">
           <AIOrb size={60} isProcessing={isTyping} />
         </div>
@@ -143,14 +128,8 @@ const AssistantPage = () => {
                     </a>
                   )}
 
-                  {msg.role === "assistant" && (
-                    <button
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      className="mt-3 flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {isPlaying ? "⏸ Pause" : "🔊 Listen"}
-                    </button>
-                  )}
+                  {/* Audio Player */}
+                  {msg.audioUrl && <AudioPlayer audioUrl={msg.audioUrl} />}
                 </div>
               </motion.div>
             ))}
@@ -178,20 +157,6 @@ const AssistantPage = () => {
           )}
           <div ref={bottomRef} />
         </div>
-
-        {/* Waveform */}
-        <AnimatePresence>
-          {isPlaying && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex justify-center mb-4"
-            >
-              <Waveform isPlaying={isPlaying} />
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Input */}
         <form onSubmit={handleSend}>
