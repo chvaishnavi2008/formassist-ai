@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/PageTransition";
 import AIOrb from "@/components/AIOrb";
 import FloatingEntity from "@/components/FloatingEntity";
+import { sendToWebhook } from "@/lib/webhook";
 
 const services = [
   { name: "Passport", icon: "🛂", x: 12, y: 20 },
@@ -25,17 +26,14 @@ const Index = () => {
   const navigate = useNavigate();
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       if (!query.trim()) return;
       setIsProcessing(true);
       setResponse("");
-      setTimeout(() => {
-        setIsProcessing(false);
-        setResponse(
-          `I found information about "${query}". Let me guide you through the process. You can explore the service details or ask me more questions.`
-        );
-      }, 2000);
+      const result = await sendToWebhook(query);
+      setIsProcessing(false);
+      setResponse(result.text || "Response received.");
     },
     [query]
   );
